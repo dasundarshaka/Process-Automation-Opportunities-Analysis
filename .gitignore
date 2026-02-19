@@ -1,12 +1,24 @@
-# Python artifacts
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-venv/
+*$py.class
 
-# SECURE FILES - NEVER SHARE THESE
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment Variables (Crucial for Security!)
 .env
+
+# IDE Specific files (VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
 credentials.json
 token.json
-
-# IDE Settings
-.vscode/

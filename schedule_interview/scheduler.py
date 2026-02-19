@@ -1,46 +1,59 @@
-import os
-import datetime
-from dotenv import load_dotenv
-from googleapiclient.discovery import build
+import os.path
+from pathlib import Path
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 
-# Load environment variables from root
-load_dotenv(dotenv_path="../.env")
+# Permissions required to manage your calendar
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-def create_interview_event(candidate_email, candidate_name, interview_date):
-    """
-    Visualizes the interview by sending an event request to the Google Calendar API.
-    """
+def create_interview_event(candidate_email, candidate_name, interview_date_str):
+    # --- PATH LOGIC ---
+    # This finds the 'credentials.json' file even if it's one folder up
+    current_dir = Path(__file__).resolve().parent.parent
+    creds_file = os.path.join(current_dir, 'credentials.json')
+    token_file = os.path.join(current_dir, 'token.json')
+
+    creds = None
+
+    # Step A: Check if we are already logged in (look for token.json)
+    if os.path.exists(token_file):
+        creds = Credentials.from_authorized_user_file(token_file, SCOPES)
+
+    # Step B: If not logged in, perform the 'Handshake' with Google
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            # Check if the credentials.json file actually exists where we expect it
+            if not os.path.exists(creds_file):
+                print(f"CRITICAL ERROR: 'credentials.json' not found at: {creds_file}")
+                return False
+            
+            # This generates the link and opens the browser
+            flow = InstalledAppFlow.from_client_secrets_file(creds_file, SCOPES)
+            creds = flow.run_local_server(port=0)
+            
+        # Save the login 'token' so the browser doesn't pop up next time
+        with open(token_file, 'w') as token:
+            token.write(creds.to_json())
+
+    # Step C: Create the Calendar Event
     try:
-        # In a real setup, 'token.json' stores your login session
-        # For this stage, we are building the 'Visualization Object'
-        calendar_id = os.getenv("CALENDAR_ID", "primary")
+        service = build('calendar', 'v3', credentials=creds)
         
-        # This is the JSON structure that 'visualizes' the data on the grid
-        event_details = {
+        event_data = {
             'summary': f'Interview: {candidate_name}',
-            'location': 'Google Meet',
-            'description': f'Technical Interview for {candidate_name}',
-            'start': {
-                'dateTime': '2026-03-01T10:00:00Z', # Example ISO format
-                'timeZone': 'UTC',
-            },
-            'end': {
-                'dateTime': '2026-03-01T11:00:00Z',
-                'timeZone': 'UTC',
-            },
-            'attendees': [
-                {'email': candidate_email},
-            ],
-            'conferenceData': {
-                'createRequest': {'requestId': 'sample123', 'conferenceSolutionKey': {'type': 'hangoutsMeet'}},
-            },
+            'description': f'Technical Interview for {candidate_email}',
+            'start': {'dateTime': '2026-03-01T10:00:00Z', 'timeZone': 'UTC'},
+            'end': {'dateTime': '2026-03-01T11:00:00Z', 'timeZone': 'UTC'},
         }
 
-        print(f"✅ ACTION: Visualizing event for {candidate_name} on {calendar_id} calendar.")
-        print(f"📍 View: https://calendar.google.com/ (Event created at {interview_date})")
-        
+        # Send to Google
+        service.events().insert(calendarId='primary', body=event_data).execute()
+        print(f"SUCCESS: Event created for {candidate_name}!")
         return True
     except Exception as e:
-        print(f"❌ Visualization Error: {e}")
+        print(f"GOOGLE API ERROR: {e}")
         return False
