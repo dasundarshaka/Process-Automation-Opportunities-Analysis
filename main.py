@@ -1,4 +1,4 @@
-from scheduler import create_interview_event
+from schedule_interview.scheduler import create_interview_event
 
 def run_automation():
     # Example candidate data including specific Date/Time
