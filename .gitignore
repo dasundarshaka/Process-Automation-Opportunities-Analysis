@@ -1,27 +1,12 @@
-# --- Environment Variables (CRITICAL) ---
-# Never upload your API keys or secrets!
-.env
-.env.local
-.env.secret
-
-# --- Python Files ---
+# Python artifacts
 __pycache__/
 *.py[cod]
-*$py.class
-.venv/
-env/
 venv/
-ENV/
 
-# --- VS Code Files ---
+# SECURE FILES - NEVER SHARE THESE
+.env
+credentials.json
+token.json
+
+# IDE Settings
 .vscode/
-*.code-workspace
-
-# --- Operating System Files ---
-.DS_Store
-Thumbs.db
-
-# --- Logs and Data ---
-*.log
-*.csv
-*.xlsx
