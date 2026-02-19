@@ -6,17 +6,16 @@ from email.message import EmailMessage
 from dotenv import load_dotenv
 from datetime import datetime
 
-# ===============================
 # LOAD ENVIRONMENT VARIABLES
-# ===============================
+
 load_dotenv()
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-# ===============================
+
 # LOAD EXCEL FILE
-# ===============================
+
 FILE_NAME = "candidates.xlsx"
 
 try:
@@ -25,9 +24,9 @@ except FileNotFoundError:
     print("Error: candidates.xlsx file not found.")
     exit()
 
-# ===============================
+
 # CREATE TRACKING COLUMNS IF NOT EXISTS
-# ===============================
+
 if "Contacted" not in data.columns:
     data["Contacted"] = "No"
 
@@ -37,9 +36,9 @@ if "Contact_Date" not in data.columns:
 # Ensure Contact_Date column accepts text
 data["Contact_Date"] = data["Contact_Date"].astype("object")
 
-# ===============================
+
 # FILTER ONLY SHORTLISTED + NOT CONTACTED
-# ===============================
+
 if "Status" not in data.columns:
     print("Error: 'Status' column missing in Excel.")
     exit()
@@ -53,9 +52,9 @@ if filtered_data.empty:
     print("No new shortlisted candidates to contact.")
     exit()
 
-# ===============================
+
 # SETUP GMAIL SERVER
-# ===============================
+
 try:
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
@@ -66,9 +65,9 @@ except Exception as e:
 
 print("Starting Email Automation...\n")
 
-# ===============================
+
 # SEND EMAILS
-# ===============================
+
 for index in filtered_data.index:
 
     name = data.loc[index, "Name"]
@@ -114,14 +113,14 @@ Recruitment Team
     except Exception as e:
         print(f"Failed to send email to {name}: {e}")
 
-# ===============================
+
 # CLOSE SERVER
-# ===============================
+
 server.quit()
 
-# ===============================
+
 # SAVE UPDATED EXCEL
-# ===============================
+
 try:
     data.to_excel(FILE_NAME, index=False)
     print("\nExcel file updated successfully.")
