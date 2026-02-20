@@ -34,7 +34,7 @@ This module is one of six automated tasks in the group project:
 ---
 
 ## 3. Project Folder Structure
-
+```
 offer_rejection_automation/
 │
 ├── candidates.xlsx              # Input file - Candidate data
@@ -46,6 +46,7 @@ offer_rejection_automation/
 └── templates/
     ├── offer_template.html      # HTML email template for offer
     └── rejection_template.html  # HTML email template for rejection
+```
 
 ## 4. Prerequisites
 
@@ -53,13 +54,15 @@ offer_rejection_automation/
 Python 3.8 or above is required. Check your version:
 
 Check:
-
+```bash
 python --version
+```
 
 ### 4.2 Required Libraries
 Install all required libraries by running:
-
+```bash
 pip install pandas openpyxl yagmail jinja2 fpdf2
+```
 
 | Library   | Purpose                                      |
 |-----------|----------------------------------------------|
@@ -102,9 +105,10 @@ This is the entry point of the automation. It performs the following steps:
 - Calls generate_report() to display and save the final summary
 
 Before running, update these two lines in main.py:
-
+```bash
 SENDER_EMAIL    = "your_email@gmail.com"
 SENDER_PASSWORD = "your_16_char_app_password"
+```
 
 ### 6.2 email_sender.py — Email Sending Logic
 Contains two functions:
@@ -158,18 +162,18 @@ App Password. Follow these steps:
 
 ### Step 1 — Open Terminal
 Navigate to your project folder:
-
+```bash 
 cd offer_rejection_automation
-
+```
 ### Step 2 — Verify Excel File
 Make sure candidates.xlsx is in the folder and:
 - Status column contains either "Offer" or "Rejected" for each candidate
 - Email_Sent column is set to "No" for all pending candidates
 
 ### Step 3 — Run the Script
-
+```bash
 python main.py
-
+```
 ### Step 4 — Expected Terminal Output
 
 ================================================
