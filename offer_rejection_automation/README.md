@@ -37,21 +37,22 @@ This module is one of six automated tasks in the group project:
 
 offer_rejection_automation/
 │
-├── candidates.xlsx               # Input: Candidate data
-├── main.py                       # Main controller script
-├── email_sender.py               # Email sending logic
-├── pdf_generator.py              # PDF offer letter generator
-├── report_generator.py           # Summary report generator
+├── candidates.xlsx              # Input file
+├── main.py                      # Main controller
+├── email_sender.py              # Email logic
+├── pdf_generator.py             # PDF generator
+├── report_generator.py          # Report generator
+│
 └── templates/
-├── offer_template.html       # HTML email template for offer
-└── rejection_template.html   # HTML email template for rejection
-
----
+    ├── offer_template.html
+    └── rejection_template.html
 
 ## 4. Prerequisites
 
 ### 4.1 Python Version
 Python 3.8 or above is required. Check your version:
+
+Check:
 
 python --version
 
