@@ -641,7 +641,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Candidate Recommendation System</h1>
+            <h1>Candidate Recommendation System</h1>
             <p>Upload CVs and Job Descriptions to Get Ranked Recommendations</p>
         </div>
         
@@ -650,9 +650,9 @@
         <div class="main-content">
             <!-- CV Upload Section -->
             <div class="upload-section">
-                <h2>📄 Upload CVs (Multiple Files)</h2>
+                <h2> Upload CVs (Multiple Files)</h2>
                 <div class="file-upload-area" id="cvDropZone">
-                    <div class="upload-icon">📁</div>
+                    <div class="upload-icon"></div>
                     <p><strong>Click to browse</strong> or drag and drop CV files here</p>
                     <p style="color: #666; font-size: 0.9em; margin-top: 10px;">Supports: PDF, DOCX, TXT</p>
                 </div>
@@ -663,11 +663,11 @@
             
             <!-- Job Description Section -->
             <div class="upload-section">
-                <h2>💼 Add Job Description</h2>
+                <h2> Add Job Description</h2>
                 
                 <!-- File Upload -->
                 <div class="file-upload-area" id="jobDropZone">
-                    <div class="upload-icon">📋</div>
+                    <div class="upload-icon"></div>
                     <p><strong>Click to browse</strong> or drag and drop job file</p>
                     <p style="color: #666; font-size: 0.9em; margin-top: 10px;">Supports: PDF, DOCX, TXT</p>
                 </div>
@@ -861,7 +861,7 @@
                 updateStats();
                 selectedJobFile = null;
                 jobDropZone.innerHTML = `
-                    <div class="upload-icon">📋</div>
+                    <div class="upload-icon"></div>
                     <p><strong>Click to browse</strong> or drag and drop job file</p>
                     <p style="color: #666; font-size: 0.9em; margin-top: 10px;">Supports: PDF, DOCX, TXT</p>
                 `;
@@ -987,7 +987,7 @@
                     html += `
                         <div class="job-section" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
                             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                                <h3 style="margin: 0; font-size: 1.3em;">📋 ${job.job_title}</h3>
+                                <h3 style="margin: 0; font-size: 1.3em;"> ${job.job_title}</h3>
                                 <div style="margin-top: 5px; font-size: 0.9em; opacity: 0.9;">
                                     Job ID: ${job.job_id} | ${candidates.length} Candidate${candidates.length !== 1 ? 's' : ''} Matched
                                 </div>
