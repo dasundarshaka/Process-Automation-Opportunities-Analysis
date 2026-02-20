@@ -37,15 +37,15 @@ This module is one of six automated tasks in the group project:
 
 offer_rejection_automation/
 │
-├── candidates.xlsx              # Input file
+├── candidates.xlsx              # Input file - Candidate data
 ├── main.py                      # Main controller
-├── email_sender.py              # Email logic
-├── pdf_generator.py             # PDF generator
-├── report_generator.py          # Report generator
+├── email_sender.py              # Email sending logic
+├── pdf_generator.py             # PDF offer letter generator
+├── report_generator.py          # Summary report generator
 │
 └── templates/
-    ├── offer_template.html
-    └── rejection_template.html
+    ├── offer_template.html      # HTML email template for offer
+    └── rejection_template.html  # HTML email template for rejection
 
 ## 4. Prerequisites
 
@@ -80,7 +80,7 @@ The file must contain the following columns:
 |--------------|------------------------------------------|----------------------|
 | Candidate_ID | Unique ID for each candidate             | 001                  |
 | Name         | Full name of the candidate               | Amal Perera          |
-| Email        | Candidate's email address                | amal.perera@gmail.com|
+| Email        | Candidate's email address                | amal111.perera@gmail.com|
 | Position     | Job role applied for                     | Data Analyst         |
 | Status       | Must be exactly 'Offer' or 'Rejected'   | Offer                |
 | Email_Sent   | Tracks if email was sent. Start as 'No' | No                   |
@@ -124,8 +124,7 @@ offer_letter_[CandidateName].pdf and is attached to the offer email, then
 deleted after sending to keep the folder clean.
 
 ### 6.4 report_generator.py — Summary Report
-After all emails are processed, this module prints a summary to the terminal
-and saves a report as an Excel file. The report includes:
+After all emails are processed, this module prints a summary to the terminal. The report includes:
 - Total candidates processed
 - Number of offer emails sent
 - Number of rejection emails sent
@@ -151,7 +150,7 @@ App Password. Follow these steps:
 5. Select Mail as the app and your device, then click Generate
 6. Copy the 16-character password and paste it into main.py as SENDER_PASSWORD
 
-> Note: Never share your App Password or push it to GitHub. Keep it private.
+> Note: Never share your App Password.
 
 ---
 
@@ -179,9 +178,9 @@ Loaded 30 candidates from candidates.xlsx
 Pending emails to send: 30
 Processing: Amal Perera -- Offer
 PDF generated: offer_letter_Amal_Perera.pdf
-Offer email sent to Amal Perera (amal.perera@gmail.com)
+Offer email sent to Amal Perera (amal111.perera@gmail.com)
 Processing: Nimal Silva -- Rejected
-Rejection email sent to Nimal Silva (nimal.silva@gmail.com)
+Rejection email sent to Nimal Silva (ni2222mal.silva@gmail.com)
 ...
 Excel file updated -- candidates.xlsx
 Report saved as: email_report_20260219_103000.xlsx
@@ -247,14 +246,12 @@ approximately 7 to 8 hours of manual HR work.
 
 ## 13. Author Information
 
-| Field       | Details                                                        |
-|-------------|----------------------------------------------------------------|
-| Module      | Send Offer / Rejection Email Automation                        |
+| Field       | Details                                                            |
+|-------------|--------------------------------------------------------------------|
+| Module      | Send Offer / Rejection Email Automation                            |
 | Project     | Process Automation Opportunities Analysis — Staffing & Recruitment |
-| Field       | Data Science Internship Group Project                          |
-| Duration    | 3 Weeks                                                        |
-| Group Size  | 6 Members                                                      |
-| Tools Used  | Python, pandas, yagmail, Jinja2, fpdf2, openpyxl               |
+| Field       | Data Science Internship Group Project                              |
+| Tools Used  | Python, pandas, yagmail, Jinja2, fpdf2, openpyxl                   |
 
 ---
 

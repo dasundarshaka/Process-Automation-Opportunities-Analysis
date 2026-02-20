@@ -24,7 +24,7 @@ def send_offer_email(sender_email, sender_password, candidate):
     yag = yagmail.SMTP(sender_email, sender_password)
     yag.send(
         to=candidate['Email'],
-        subject=f"Job Offer – {candidate['Position']} | ABC Company",
+        subject=f"Job Offer – {candidate['Position']} | Unknown Company",
         contents=email_body,
         attachments=pdf_file
     )
@@ -51,7 +51,7 @@ def send_rejection_email(sender_email, sender_password, candidate):
     yag = yagmail.SMTP(sender_email, sender_password)
     yag.send(
         to=candidate['Email'],
-        subject=f"Application Update – {candidate['Position']} | ABC Company",
+        subject=f"Application Update – {candidate['Position']} | Unknown Company",
         contents=email_body
     )
 

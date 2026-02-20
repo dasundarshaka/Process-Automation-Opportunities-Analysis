@@ -5,8 +5,8 @@ from report_generator import generate_report
 # ============================================================
 # Update these before running
 # ============================================================
-SENDER_EMAIL = "your_email@gmail.com"       # Sender's Gmail address
-SENDER_PASSWORD = "your_app_password_here"  # Gmail App Password 
+SENDER_EMAIL = "email_address@gmail.com"       # Sender's Gmail address
+SENDER_PASSWORD = "app_password_here"  # Gmail App Password 
 EXCEL_FILE = "candidates.xlsx"
 # ============================================================
 
