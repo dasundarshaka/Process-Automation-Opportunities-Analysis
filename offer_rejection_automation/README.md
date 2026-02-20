@@ -165,6 +165,7 @@ Navigate to your project folder:
 ```bash 
 cd offer_rejection_automation
 ```
+
 ### Step 2 — Verify Excel File
 Make sure candidates.xlsx is in the folder and:
 - Status column contains either "Offer" or "Rejected" for each candidate
@@ -174,8 +175,9 @@ Make sure candidates.xlsx is in the folder and:
 ```bash
 python main.py
 ```
-### Step 4 — Expected Terminal Output
 
+### Step 4 — Expected Terminal Output
+```bash
 ================================================
 OFFER / REJECTION EMAIL AUTOMATION
 Loaded 30 candidates from candidates.xlsx
@@ -190,6 +192,7 @@ Excel file updated -- candidates.xlsx
 Report saved as: email_report_20260219_103000.xlsx
 
 ---
+```
 
 ## 9. Automation Flow
 
