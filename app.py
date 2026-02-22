@@ -7,6 +7,9 @@ from datetime import datetime
 from src.document_parser import DocumentParser
 from src.recommendation_pipeline import CandidateRecommendationPipeline
 import uuid
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -14,10 +17,12 @@ CORS(app)
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max for multiple files
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['DATABASE_FOLDER'] = 'database'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
 
-# Ensure upload folder exists
+# Ensure folders exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['DATABASE_FOLDER'], exist_ok=True)
 
 # Initialize parsers
 document_parser = DocumentParser()
@@ -38,6 +43,184 @@ jobs_data = []
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_cvs_to_excel():
+    """Save all CVs data to Excel database"""
+    try:
+        if not cvs_data:
+            return
+        
+        # Prepare data for Excel
+        excel_data = []
+        for cv in cvs_data:
+            excel_data.append({
+                'Candidate ID': cv['candidate_id'],
+                'Name': cv['name'],
+                'Skills': cv['skills'][:500] if cv['skills'] else '',
+                'Experience': cv['experience'][:500] if cv['experience'] else '',
+                'Education': cv['education'][:300] if cv['education'] else '',
+                'Filename': cv['filename'],
+                'Upload Date': cv['timestamp'],
+                'Text Length': len(cv.get('cv_text', ''))
+            })
+        
+        df = pd.DataFrame(excel_data)
+        excel_path = os.path.join(app.config['DATABASE_FOLDER'], 'cvs_database.xlsx')
+        
+        # Save to Excel with formatting
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='CVs', index=False)
+            
+            # Format the sheet
+            worksheet = writer.sheets['CVs']
+            
+            # Header formatting
+            header_fill = PatternFill(start_color='1E40AF', end_color='1E40AF', fill_type='solid')
+            header_font = Font(bold=True, color='FFFFFF', size=12)
+            
+            for cell in worksheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Adjust column widths
+            worksheet.column_dimensions['A'].width = 15
+            worksheet.column_dimensions['B'].width = 25
+            worksheet.column_dimensions['C'].width = 50
+            worksheet.column_dimensions['D'].width = 50
+            worksheet.column_dimensions['E'].width = 35
+            worksheet.column_dimensions['F'].width = 30
+            worksheet.column_dimensions['G'].width = 20
+            worksheet.column_dimensions['H'].width = 12
+        
+        print(f"✓ CVs database saved: {excel_path}")
+    except Exception as e:
+        print(f"✗ Error saving CVs to Excel: {str(e)}")
+
+
+def save_jobs_to_excel():
+    """Save all Jobs data to Excel database"""
+    try:
+        if not jobs_data:
+            return
+        
+        # Prepare data for Excel
+        excel_data = []
+        for job in jobs_data:
+            excel_data.append({
+                'Job ID': job['job_id'],
+                'Title': job['title'],
+                'Required Skills': job['required_skills'][:500] if job['required_skills'] else '',
+                'Experience Required': job['experience_required'][:500] if job['experience_required'] else '',
+                'Education Required': job['education_required'][:300] if job['education_required'] else '',
+                'Source': job.get('source', 'file'),
+                'Filename': job.get('filename', 'N/A'),
+                'Upload Date': job['timestamp'],
+                'Description Length': len(job.get('job_description', ''))
+            })
+        
+        df = pd.DataFrame(excel_data)
+        excel_path = os.path.join(app.config['DATABASE_FOLDER'], 'jobs_database.xlsx')
+        
+        # Save to Excel with formatting
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Jobs', index=False)
+            
+            # Format the sheet
+            worksheet = writer.sheets['Jobs']
+            
+            # Header formatting
+            header_fill = PatternFill(start_color='1E40AF', end_color='1E40AF', fill_type='solid')
+            header_font = Font(bold=True, color='FFFFFF', size=12)
+            
+            for cell in worksheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Adjust column widths
+            worksheet.column_dimensions['A'].width = 15
+            worksheet.column_dimensions['B'].width = 35
+            worksheet.column_dimensions['C'].width = 50
+            worksheet.column_dimensions['D'].width = 50
+            worksheet.column_dimensions['E'].width = 35
+            worksheet.column_dimensions['F'].width = 12
+            worksheet.column_dimensions['G'].width = 30
+            worksheet.column_dimensions['H'].width = 20
+            worksheet.column_dimensions['I'].width = 15
+        
+        print(f"✓ Jobs database saved: {excel_path}")
+    except Exception as e:
+        print(f"✗ Error saving Jobs to Excel: {str(e)}")
+
+
+def save_recommendations_to_excel(recommendations_data):
+    """Save recommendations/matches data to Excel database"""
+    try:
+        if not recommendations_data:
+            return
+        
+        # Prepare data for Excel
+        excel_data = []
+        for job_rec in recommendations_data:
+            job_id = job_rec['job_id']
+            job_title = job_rec['job_title']
+            
+            for candidate in job_rec['candidates']:
+                excel_data.append({
+                    'Job ID': job_id,
+                    'Job Title': job_title,
+                    'Rank': candidate['rank'],
+                    'Candidate ID': candidate['candidate_id'],
+                    'Candidate Name': candidate['name'],
+                    'Match %': candidate['match_percentage'],
+                    'Similarity Score': candidate['similarity_score'],
+                    'Summary': candidate['summary'][:300] if candidate['summary'] else '',
+                    'Skills Match': candidate['skills'][:200] if candidate['skills'] else '',
+                    'Generated Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+        
+        df = pd.DataFrame(excel_data)
+        excel_path = os.path.join(app.config['DATABASE_FOLDER'], 'recommendations_database.xlsx')
+        
+        # Check if file exists to append or create new
+        if os.path.exists(excel_path):
+            # Append to existing file
+            existing_df = pd.read_excel(excel_path, sheet_name='Recommendations')
+            df = pd.concat([existing_df, df], ignore_index=True)
+        
+        # Save to Excel with formatting
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Recommendations', index=False)
+            
+            # Format the sheet
+            worksheet = writer.sheets['Recommendations']
+            
+            # Header formatting
+            header_fill = PatternFill(start_color='1E40AF', end_color='1E40AF', fill_type='solid')
+            header_font = Font(bold=True, color='FFFFFF', size=12)
+            
+            for cell in worksheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Adjust column widths
+            worksheet.column_dimensions['A'].width = 12
+            worksheet.column_dimensions['B'].width = 35
+            worksheet.column_dimensions['C'].width = 8
+            worksheet.column_dimensions['D'].width = 15
+            worksheet.column_dimensions['E'].width = 25
+            worksheet.column_dimensions['F'].width = 10
+            worksheet.column_dimensions['G'].width = 15
+            worksheet.column_dimensions['H'].width = 40
+            worksheet.column_dimensions['I'].width = 30
+            worksheet.column_dimensions['J'].width = 20
+        
+        print(f"✓ Recommendations database saved: {excel_path}")
+    except Exception as e:
+        print(f"✗ Error saving Recommendations to Excel: {str(e)}")
 
 
 @app.route('/')
@@ -139,6 +322,9 @@ def upload_cvs_bulk():
                 if os.path.exists(file_path):
                     os.remove(file_path)
         
+        # Save CVs to Excel database
+        save_cvs_to_excel()
+        
         return jsonify({
             'success': True,
             'message': f'Processed {len(successful_uploads)} CVs successfully',
@@ -211,6 +397,9 @@ def upload_job_file():
         # Store
         jobs_data.append(job_entry)
         
+        # Save Jobs to Excel database
+        save_jobs_to_excel()
+        
         return jsonify({
             'success': True,
             'message': 'Job description uploaded successfully',
@@ -264,6 +453,9 @@ def add_job_text():
         
         # Store
         jobs_data.append(job_entry)
+        
+        # Save Jobs to Excel database
+        save_jobs_to_excel()
         
         return jsonify({
             'success': True,
@@ -346,6 +538,9 @@ def recommend():
                 'candidates': candidates_list,
                 'total_matches': len(candidates_list)
             })
+        
+        # Save recommendations to Excel database
+        save_recommendations_to_excel(job_recommendations)
         
         return jsonify({
             'success': True,
@@ -432,10 +627,55 @@ def clear_data():
             except:
                 pass
     
+    # Delete Excel database files
+    database_files = ['cvs_database.xlsx', 'jobs_database.xlsx', 'recommendations_database.xlsx']
+    for db_file in database_files:
+        db_path = os.path.join(app.config['DATABASE_FOLDER'], db_file)
+        if os.path.exists(db_path):
+            try:
+                os.remove(db_path)
+                print(f"✓ Deleted {db_file}")
+            except:
+                pass
+    
     cvs_data = []
     jobs_data = []
     
     return jsonify({'message': 'All data cleared successfully'}), 200
+
+
+@app.route('/api/database-status', methods=['GET'])
+def get_database_status():
+    """Get Excel database files status"""
+    database_info = []
+    database_files = {
+        'cvs_database.xlsx': 'CVs Database',
+        'jobs_database.xlsx': 'Jobs Database',
+        'recommendations_database.xlsx': 'Recommendations Database'
+    }
+    
+    for filename, description in database_files.items():
+        file_path = os.path.join(app.config['DATABASE_FOLDER'], filename)
+        if os.path.exists(file_path):
+            file_stats = os.stat(file_path)
+            database_info.append({
+                'name': description,
+                'filename': filename,
+                'size': f"{file_stats.st_size / 1024:.2f} KB",
+                'last_modified': datetime.fromtimestamp(file_stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                'exists': True
+            })
+        else:
+            database_info.append({
+                'name': description,
+                'filename': filename,
+                'exists': False
+            })
+    
+    return jsonify({
+        'databases': database_info,
+        'database_folder': app.config['DATABASE_FOLDER']
+    }), 200
 
 
 if __name__ == '__main__':
@@ -445,6 +685,7 @@ if __name__ == '__main__':
     print("\n📄 Supported Formats: PDF, DOCX, TXT")
     print("📊 Bulk CV upload with automatic ranking")
     print("✍️  Text input for job descriptions")
+    print("📁 Excel database for data storage and reporting")
     print("\nEndpoints:")
     print("  GET  /                       - Web interface")
     print("  GET  /api/health             - Health check")
@@ -454,7 +695,12 @@ if __name__ == '__main__':
     print("  POST /api/recommend          - Get ranked recommendations")
     print("  GET  /api/cvs                - List all CVs")
     print("  GET  /api/jobs               - List all jobs")
+    print("  GET  /api/database-status    - Check Excel database status")
     print("  POST /api/clear              - Clear all data")
+    print("\n📂 Excel Database Location: database/")
+    print("   - cvs_database.xlsx")
+    print("   - jobs_database.xlsx")
+    print("   - recommendations_database.xlsx")
     print("\n" + "="*70)
     print(f"\n🌐 Server starting at: http://localhost:5000\n")
     
