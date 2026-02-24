@@ -709,6 +709,7 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
             <button class="btn" id="generateRankingsBtn" disabled>Generate Rankings</button>
+            <button class="btn" id="generateReportBtn" disabled style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"> Generate Report</button>
             <button class="btn btn-secondary" id="clearAllBtn">Clear All Data</button>
         </div>
         
@@ -945,6 +946,32 @@
             showLoading(false);
         });
         
+        // Generate Report
+        document.getElementById('generateReportBtn').addEventListener('click', async () => {
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ include_recommendations: true })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('success', 'Report generated successfully!');
+                    
+                    // Automatically download the report
+                    window.location.href = data.download_url;
+                } else {
+                    showMessage('error', data.error);
+                }
+            } catch (error) {
+                showMessage('error', 'Failed to generate report: ' + error.message);
+            }
+            showLoading(false);
+        });
+        
         // Display Results
         function displayResults(data) {
             const container = document.getElementById('resultsContainer');
@@ -1109,6 +1136,7 @@
                 
                 const canGenerate = cvsData.total > 0 && jobsData.total > 0;
                 document.getElementById('generateRankingsBtn').disabled = !canGenerate;
+                document.getElementById('generateReportBtn').disabled = !canGenerate;
             } catch (error) {
                 console.error('Failed to update stats:', error);
             }
