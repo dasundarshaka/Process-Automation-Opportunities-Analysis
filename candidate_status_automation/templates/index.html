@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Status Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d2e;
+            --surface2: #252840;
+            --border: #2e3255;
+            --accent: #6c63ff;
+            --accent-glow: rgba(108,99,255,0.3);
+            --offer: #22c55e;
+            --offer-bg: rgba(34,197,94,0.12);
+            --reject: #ef4444;
+            --reject-bg: rgba(239,68,68,0.12);
+            --interview: #f59e0b;
+            --interview-bg: rgba(245,158,11,0.12);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ─── Header ─────────────────────────────────────────────── */
+        header {
+            background: linear-gradient(135deg, #1a1d2e 0%, #252840 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 14px; }
+        .logo-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .logo-text h1 { font-size: 1.25rem; font-weight: 700; }
+        .logo-text p  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .header-badge {
+            background: var(--accent-glow);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px;
+        }
+
+        /* ─── Main layout ────────────────────────────────────────── */
+        main { max-width: 1200px; margin: 0 auto; padding: 36px 24px; }
+
+        /* ─── Stat cards ─────────────────────────────────────────── */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 36px; }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .stat-card .label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+        .stat-total .value   { color: #a78bfa; }
+        .stat-interview .value { color: var(--interview); }
+        .stat-offer .value   { color: var(--offer); }
+        .stat-reject .value  { color: var(--reject); }
+
+        /* ─── Toolbar ────────────────────────────────────────────── */
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .toolbar h2 { font-size: 1.1rem; font-weight: 600; }
+        .filter-tabs { display: flex; gap: 8px; }
+        .filter-tab {
+            background: none; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 7px 16px;
+            border-radius: 20px; font-family: inherit; font-size: 0.82rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .filter-tab.active, .filter-tab:hover {
+            background: var(--accent); border-color: var(--accent); color: #fff;
+        }
+
+        /* ─── Candidate cards ────────────────────────────────────── */
+        #candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+
+        .cand-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fadeUp 0.4s ease both;
+        }
+        .cand-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; font-weight: 700; flex-shrink: 0;
+            color: #fff;
+        }
+        .card-info h3 { font-size: 0.97rem; font-weight: 600; }
+        .card-info p  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .status-Interview { background: var(--interview-bg); color: var(--interview); border: 1px solid rgba(245,158,11,0.3); }
+        .status-Offer     { background: var(--offer-bg);     color: var(--offer);     border: 1px solid rgba(34,197,94,0.3); }
+        .status-Rejected  { background: var(--reject-bg);    color: var(--reject);    border: 1px solid rgba(239,68,68,0.3); }
+        .status-Screening { background: rgba(100,116,139,0.15); color: var(--text-dim); border: 1px solid rgba(100,116,139,0.3); }
+
+        .card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+        .detail-item .d-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; }
+        .detail-item .d-value { font-size: 0.85rem; margin-top: 2px; }
+
+        /* ─── Score input section ────────────────────────────────── */
+        .score-section {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 14px;
+        }
+        .score-section label { font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 8px; }
+        .score-row { display: flex; gap: 10px; }
+        .score-input {
+            flex: 1; background: var(--surface); border: 1px solid var(--border);
+            color: var(--text); border-radius: 8px; padding: 9px 14px;
+            font-family: inherit; font-size: 0.9rem; transition: border-color 0.2s;
+        }
+        .score-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .btn-update {
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border: none; color: #fff; padding: 9px 18px;
+            border-radius: 8px; font-family: inherit; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+        .btn-update:hover   { opacity: 0.88; transform: scale(1.02); }
+        .btn-update:active  { transform: scale(0.98); }
+        .btn-update:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .score-hint { font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; }
+        .score-hint .pass { color: var(--offer); }
+        .score-hint .fail { color: var(--reject); }
+
+        /* result badge after update */
+        .result-badge {
+            margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+            font-size: 0.83rem; font-weight: 500; display: none;
+        }
+        .result-badge.offer    { background: var(--offer-bg); color: var(--offer); border: 1px solid rgba(34,197,94,0.3); }
+        .result-badge.rejected { background: var(--reject-bg); color: var(--reject); border: 1px solid rgba(239,68,68,0.3); }
+
+        /* locked state */
+        .cand-card.locked .score-section { opacity: 0.5; pointer-events: none; }
+        .cand-card.locked { border-color: rgba(34,197,94,0.25); }
+
+        /* ─── Empty + Loader ─────────────────────────────────────── */
+        #empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); display: none; }
+        #empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+        #loader {
+            text-align: center; padding: 60px 20px; color: var(--text-muted);
+        }
+        .spinner {
+            width: 36px; height: 36px; border: 3px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.7s linear infinite; margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── Toast ──────────────────────────────────────────────── */
+        #toast {
+            position: fixed; bottom: 28px; right: 28px;
+            background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 14px 20px; border-radius: 12px;
+            font-size: 0.85rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transform: translateY(80px); opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 999; max-width: 320px;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.success { border-color: var(--offer); }
+        #toast.error   { border-color: var(--reject); }
+
+        @media (max-width: 600px) {
+            header { flex-direction: column; gap: 12px; }
+            .stats { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🎯</div>
+        <div class="logo-text">
+            <h1>Candidate Status Dashboard</h1>
+            <p>Update Candidate Status Automation</p>
+        </div>
+    </div>
+    <div class="header-badge">Process Automation</div>
+</header>
+
+<main>
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-card stat-total">
+            <div class="label">Total Candidates</div>
+            <div class="value" id="stat-total">—</div>
+        </div>
+        <div class="stat-card stat-interview">
+            <div class="label">Pending Interview</div>
+            <div class="value" id="stat-interview">—</div>
+        </div>
+        <div class="stat-card stat-offer">
+            <div class="label">Offers Given</div>
+            <div class="value" id="stat-offer">—</div>
+        </div>
+        <div class="stat-card stat-reject">
+            <div class="label">Rejected</div>
+            <div class="value" id="stat-reject">—</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <h2>Candidates</h2>
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="Interview">Interview</button>
+            <button class="filter-tab" data-filter="Offer">Offer</button>
+            <button class="filter-tab" data-filter="Rejected">Rejected</button>
+            <button class="filter-tab" data-filter="All">All</button>
+        </div>
+    </div>
+
+    <!-- Cards -->
+    <div id="loader"><div class="spinner"></div>Loading candidates…</div>
+    <div id="candidates-grid"></div>
+    <div id="empty-state">
+        <div class="icon">✅</div>
+        <p>No candidates match this filter.</p>
+    </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+    let allCandidates = [];
+    let currentFilter = 'Interview';
+
+    // ── Helpers ────────────────────────────────────────────────────
+    function initials(name) {
+        return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+    }
+
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `show ${type}`;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.className = ''; }, 3000);
+    }
+
+    function updateStats(data) {
+        document.getElementById('stat-total').textContent     = data.length;
+        document.getElementById('stat-interview').textContent = data.filter(c => c.Status === 'Interview').length;
+        document.getElementById('stat-offer').textContent     = data.filter(c => c.Status === 'Offer').length;
+        document.getElementById('stat-reject').textContent    = data.filter(c => c.Status === 'Rejected').length;
+    }
+
+    // ── Render ─────────────────────────────────────────────────────
+    function renderCandidates(filter) {
+        const grid = document.getElementById('candidates-grid');
+        const empty = document.getElementById('empty-state');
+        grid.innerHTML = '';
+
+        const list = filter === 'All'
+            ? allCandidates
+            : allCandidates.filter(c => c.Status === filter);
+
+        if (!list.length) { empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+
+        list.forEach((c, i) => {
+            const isLocked = (c.Status === 'Offer' || c.Status === 'Rejected');
+            const card = document.createElement('div');
+            card.className = `cand-card ${isLocked ? 'locked' : ''}`;
+            card.style.animationDelay = `${i * 0.05}s`;
+            card.id = `card-${c.Candidate_ID}`;
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="avatar">${initials(c.Name)}</div>
+                    <div class="card-info">
+                        <h3>${c.Name}</h3>
+                        <p>${c.Position || 'N/A'}</p>
+                    </div>
+                    <span class="status-badge status-${c.Status}" id="badge-${c.Candidate_ID}">${c.Status}</span>
+                </div>
+                <div class="card-details">
+                    <div class="detail-item">
+                        <div class="d-label">Candidate ID</div>
+                        <div class="d-value">#${c.Candidate_ID}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Email Sent</div>
+                        <div class="d-value">${c.Email_Sent || 'No'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Email</div>
+                        <div class="d-value" style="font-size:0.78rem;color:var(--text-muted)">${c.Email}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="d-label">Interview Score</div>
+                        <div class="d-value" id="score-display-${c.Candidate_ID}">${c.Interview_Score !== '' && c.Interview_Score !== undefined ? c.Interview_Score : '—'}</div>
+                    </div>
+                </div>
+                <div class="score-section">
+                    <label>Enter Interview Score to Update Status</label>
+                    <div class="score-row">
+                        <input type="number" class="score-input"
+                               id="input-${c.Candidate_ID}"
+                               min="0" max="100" step="1"
+                               placeholder="0 – 100"
+                               ${isLocked ? 'disabled' : ''}>
+                        <button class="btn-update"
+                                id="btn-${c.Candidate_ID}"
+                                onclick="submitScore('${c.Candidate_ID}')"
+                                ${isLocked ? 'disabled' : ''}>
+                            Update
+                        </button>
+                    </div>
+                    <div class="score-hint">
+                        <span class="pass">≥ 75 → Offer</span>
+                        &nbsp;|&nbsp;
+                        <span class="fail">&lt; 75 → Rejected</span>
+                    </div>
+                    <div class="result-badge" id="result-${c.Candidate_ID}"></div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // ── Submit Score ───────────────────────────────────────────────
+    async function submitScore(candidateId) {
+        const input = document.getElementById(`input-${candidateId}`);
+        const btn   = document.getElementById(`btn-${candidateId}`);
+        const scoreVal = parseFloat(input.value);
+
+        if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 100) {
+            showToast('Enter a valid score between 0 and 100.', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Updating…';
+
+        try {
+            const res = await fetch('/api/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ candidate_id: candidateId, score: scoreVal })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            // Update local state
+            const cand = allCandidates.find(c => String(c.Candidate_ID) === String(candidateId));
+            if (cand) {
+                cand.Status = data.status;
+                cand.Interview_Score = data.score;
+                cand.Email_Sent = 'No';
+            }
+
+            // Update badge
+            const badge = document.getElementById(`badge-${candidateId}`);
+            badge.textContent = data.status;
+            badge.className = `status-badge status-${data.status}`;
+
+            // Update score display
+            document.getElementById(`score-display-${candidateId}`).textContent = data.score;
+
+            // Show result
+            const resultEl = document.getElementById(`result-${candidateId}`);
+            resultEl.className = `result-badge ${data.status === 'Offer' ? 'offer' : 'rejected'}`;
+            resultEl.textContent = data.status === 'Offer'
+                ? `✅ ${data.name} has been given an Offer!`
+                : `❌ ${data.name} has been Rejected.`;
+            resultEl.style.display = 'block';
+
+            // Lock the card
+            document.getElementById(`card-${candidateId}`).classList.add('locked');
+            btn.textContent = 'Done';
+
+            updateStats(allCandidates);
+            showToast(`Updated ${data.name}: ${data.status}`, 'success');
+
+        } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Update';
+        }
+    }
+
+    // ── Filter tabs ────────────────────────────────────────────────
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentFilter = tab.dataset.filter;
+            renderCandidates(currentFilter);
+        });
+    });
+
+    // ── Load ───────────────────────────────────────────────────────
+    async function loadCandidates() {
+        try {
+            const res = await fetch('/api/candidates');
+            if (!res.ok) throw new Error('Failed to load candidates.xlsx');
+            allCandidates = await res.json();
+            document.getElementById('loader').style.display = 'none';
+            updateStats(allCandidates);
+            renderCandidates(currentFilter);
+        } catch (err) {
+            document.getElementById('loader').innerHTML =
+                `<p style="color:var(--reject)">⚠ ${err.message}</p>`;
+        }
+    }
+
+    loadCandidates();
+</script>
+</body>
+</html>
