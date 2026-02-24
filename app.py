@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import pandas as pd
@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from src.document_parser import DocumentParser
 from src.recommendation_pipeline import CandidateRecommendationPipeline
+from src.report_generator import ReportGenerator
 import uuid
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -18,14 +19,17 @@ CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max for multiple files
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DATABASE_FOLDER'] = 'database'
+app.config['REPORTS_FOLDER'] = 'reports'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
 
 # Ensure folders exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['DATABASE_FOLDER'], exist_ok=True)
+os.makedirs(app.config['REPORTS_FOLDER'], exist_ok=True)
 
 # Initialize parsers
 document_parser = DocumentParser()
+report_generator = ReportGenerator()
 
 # Initialize recommendation pipeline
 try:
@@ -542,6 +546,16 @@ def recommend():
         # Save recommendations to Excel database
         save_recommendations_to_excel(job_recommendations)
         
+        # Auto-generate report after recommendations
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            report_filename = f'auto_report_{timestamp}.pdf'
+            report_path = os.path.join(app.config['REPORTS_FOLDER'], report_filename)
+            report_generator.generate_report(cvs_data, jobs_data, job_recommendations, report_path)
+            print(f"✓ Auto-generated report: {report_filename}")
+        except Exception as e:
+            print(f"✗ Failed to auto-generate report: {str(e)}")
+        
         return jsonify({
             'success': True,
             'jobs': job_recommendations,
@@ -678,6 +692,141 @@ def get_database_status():
     }), 200
 
 
+@app.route('/api/generate-report', methods=['POST'])
+def generate_report():
+    """Generate comprehensive PDF report"""
+    try:
+        data = request.json or {}
+        include_recommendations = data.get('include_recommendations', True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        report_filename = f'candidate_recommendation_report_{timestamp}.pdf'
+        report_path = os.path.join(app.config['REPORTS_FOLDER'], report_filename)
+        
+        # Check if we have data
+        if len(cvs_data) == 0 and len(jobs_data) == 0:
+            return jsonify({'error': 'No data available to generate report'}), 400
+        
+        # If we have recommendations, generate full report
+        if include_recommendations:
+            # Need to run recommendations first
+            if len(cvs_data) == 0:
+                return jsonify({'error': 'No CVs uploaded yet'}), 400
+            
+            if len(jobs_data) == 0:
+                return jsonify({'error': 'No jobs uploaded yet'}), 400
+            
+            if not pipeline:
+                return jsonify({'error': 'Pipeline not initialized'}), 500
+            
+            # Generate recommendations
+            cvs_df = pd.DataFrame(cvs_data)
+            jobs_df = pd.DataFrame(jobs_data)
+            recommendations_df = pipeline.batch_recommend(jobs_df, cvs_df, top_n=len(cvs_df))
+            
+            # Format recommendations
+            job_recommendations = []
+            for _, job in jobs_df.iterrows():
+                job_recs = recommendations_df[recommendations_df['job_id'] == job['job_id']]
+                job_recs = job_recs.sort_values('similarity_score', ascending=False).reset_index(drop=True)
+                
+                candidates_list = []
+                for idx, row in job_recs.iterrows():
+                    cv = next((c for c in cvs_data if c['candidate_id'] == row['candidate_id']), None)
+                    candidate_name = cv['name'] if cv else 'Unknown'
+                    
+                    candidates_list.append({
+                        'rank': idx + 1,
+                        'candidate_id': row['candidate_id'],
+                        'name': candidate_name,
+                        'similarity_score': round(row['similarity_score'], 4),
+                        'match_percentage': round(row['similarity_score'] * 100, 2),
+                        'summary': generate_candidate_summary(cv, row['similarity_score']),
+                        'skills': cv['skills'][:300] if cv else '',
+                        'experience': cv['experience'][:300] if cv else '',
+                        'education': cv['education'][:200] if cv else ''
+                    })
+                
+                job_recommendations.append({
+                    'job_id': job['job_id'],
+                    'job_title': job['title'],
+                    'candidates': candidates_list,
+                    'total_matches': len(candidates_list)
+                })
+            
+            # Generate report with recommendations
+            report_generator.generate_report(cvs_data, jobs_data, job_recommendations, report_path)
+        else:
+            # Generate summary report without recommendations
+            report_generator.generate_summary_report(cvs_data, jobs_data, report_path)
+        
+        # Return file info
+        return jsonify({
+            'success': True,
+            'message': 'Report generated successfully',
+            'filename': report_filename,
+            'path': report_path,
+            'download_url': f'/api/download-report/{report_filename}'
+        }), 200
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/download-report/<filename>', methods=['GET'])
+def download_report(filename):
+    """Download generated report"""
+    try:
+        report_path = os.path.join(app.config['REPORTS_FOLDER'], filename)
+        
+        if not os.path.exists(report_path):
+            return jsonify({'error': 'Report not found'}), 404
+        
+        return send_file(
+            report_path,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/reports', methods=['GET'])
+def list_reports():
+    """List all generated reports"""
+    try:
+        reports = []
+        reports_folder = app.config['REPORTS_FOLDER']
+        
+        if os.path.exists(reports_folder):
+            for filename in os.listdir(reports_folder):
+                if filename.endswith('.pdf'):
+                    file_path = os.path.join(reports_folder, filename)
+                    file_stats = os.stat(file_path)
+                    reports.append({
+                        'filename': filename,
+                        'size': f"{file_stats.st_size / 1024:.2f} KB",
+                        'created': datetime.fromtimestamp(file_stats.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
+                        'download_url': f'/api/download-report/{filename}'
+                    })
+        
+        # Sort by creation time (newest first)
+        reports.sort(key=lambda x: x['created'], reverse=True)
+        
+        return jsonify({
+            'reports': reports,
+            'total': len(reports)
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print("\n" + "="*70)
     print("   🚀 Enhanced Candidate Recommendation System")
@@ -686,21 +835,28 @@ if __name__ == '__main__':
     print("📊 Bulk CV upload with automatic ranking")
     print("✍️  Text input for job descriptions")
     print("📁 Excel database for data storage and reporting")
+    print("📝 Automated PDF report generation")
     print("\nEndpoints:")
-    print("  GET  /                       - Web interface")
-    print("  GET  /api/health             - Health check")
-    print("  POST /api/upload-cvs-bulk    - Upload multiple CVs")
-    print("  POST /api/upload-job-file    - Upload job document")
-    print("  POST /api/add-job-text       - Add job as text")
-    print("  POST /api/recommend          - Get ranked recommendations")
-    print("  GET  /api/cvs                - List all CVs")
-    print("  GET  /api/jobs               - List all jobs")
-    print("  GET  /api/database-status    - Check Excel database status")
-    print("  POST /api/clear              - Clear all data")
-    print("\n📂 Excel Database Location: database/")
+    print("  GET  /                          - Web interface")
+    print("  GET  /api/health                - Health check")
+    print("  POST /api/upload-cvs-bulk       - Upload multiple CVs")
+    print("  POST /api/upload-job-file       - Upload job document")
+    print("  POST /api/add-job-text          - Add job as text")
+    print("  POST /api/recommend             - Get ranked recommendations")
+    print("  GET  /api/cvs                   - List all CVs")
+    print("  GET  /api/jobs                  - List all jobs")
+    print("  GET  /api/database-status       - Check Excel database status")
+    print("  POST /api/generate-report       - Generate PDF report")
+    print("  GET  /api/reports               - List all generated reports")
+    print("  GET  /api/download-report/<id>  - Download specific report")
+    print("  POST /api/clear                 - Clear all data")
+    print("\n📂 Storage Locations:")
+    print("   Excel Database: database/")
     print("   - cvs_database.xlsx")
     print("   - jobs_database.xlsx")
     print("   - recommendations_database.xlsx")
+    print("   PDF Reports: reports/")
+    print("   - Auto-generated after each recommendation")
     print("\n" + "="*70)
     print(f"\n🌐 Server starting at: http://localhost:5000\n")
     
